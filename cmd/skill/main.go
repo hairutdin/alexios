@@ -1,8 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
+
+	"go.uber.org/zap"
+
+	"github.com/hairutdin/alexios/internal/logger"
 )
 
 func main() {
@@ -14,23 +17,29 @@ func main() {
 }
 
 func run() error {
-	fmt.Println("Running server on", flagRunAddr)
-	return http.ListenAndServe(":8080", http.HandlerFunc(webhook))
+	if err := logger.Initialize(flagLogLevel); err != nil {
+		return err
+	}
+
+	logger.Log.Info("Running server", zap.String("address", flagRunAddr))
+	return http.ListenAndServe(flagRunAddr, logger.RequestLogger(webhook))
 }
 
 func webhook(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
+		logger.Log.Debug("got request with bad method", zap.String("method", r.Method))
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write([]byte(`
-	{
-		"response": {
-			"text": "Sorry, I can't do anything at the moment"
-		},
-		"version": "1.0"
-	}
-	`))
+			{
+				"response": {
+					"text": "Sorry, I can't do anything at the moment"
+				},
+				"version": "1.0"
+			}
+		`))
+	logger.Log.Debug("sending HTTP 200 response")
 }
