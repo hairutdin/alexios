@@ -12,7 +12,12 @@ type Request struct {
 }
 
 type Session struct {
-	New bool `json:"new"`
+	New  bool `json:"new"`
+	User User `json:"user"`
+}
+
+type User struct {
+	UserID string `json:"userId"`
 }
 
 type SimpleUtterance struct {
