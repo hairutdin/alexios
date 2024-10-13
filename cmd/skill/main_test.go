@@ -15,6 +15,8 @@ import (
 
 func TestWebhook(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	s := mock.NewMockStore(ctrl)
 
 	messages := []store.Message{
@@ -27,7 +29,11 @@ func TestWebhook(t *testing.T) {
 
 	s.EXPECT().
 		ListMessages(gomock.Any(), gomock.Any()).
-		Return(messages, nil)
+		Return(messages, nil).AnyTimes()
+
+	s.EXPECT().
+		RegisterUser(gomock.Any(), "1234", "JohnDoe").
+		Return(nil)
 
 	appInstance := newApp(s)
 
@@ -78,7 +84,14 @@ func TestWebhook(t *testing.T) {
 			method:       http.MethodPost,
 			body:         `{"request": {"type": "SimpleUtterance", "command": "sudo do something"}, "session": {"new": true}, "version": "1.0"}`,
 			expectedCode: http.StatusOK,
-			expectedBody: `Exact time .* hours, .* minutes. There are 1 new messages for you.`,
+			expectedBody: `Exact time .* hours, .* minutes. There are 1 new messages.`,
+		},
+		{
+			name:         "method_post_register_user",
+			method:       http.MethodPost,
+			body:         `{"request": {"type": "SimpleUtterance", "command": "Sign Up JohnDoe"}, "session": {"user": {"userId": "1234"}}, "version": "1.0"}`,
+			expectedCode: http.StatusOK,
+			expectedBody: `You have successfully been registered as JohnDoe`,
 		},
 	}
 
